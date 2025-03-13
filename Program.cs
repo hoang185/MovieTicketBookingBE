@@ -11,12 +11,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Thêm CORS
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularClient",
         policy =>
         {
-            policy.WithOrigins("http://localhost:4200") // Thay đổi thành URL của Angular
+            policy.WithOrigins(allowedOrigins) // Lấy từ appsettings.json
                   .AllowAnyHeader()
                   .AllowAnyMethod();
         });

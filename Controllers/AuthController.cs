@@ -15,6 +15,7 @@ namespace MovieTicketBooking.Controllers
         {
             _authService = authService;
         }
+
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
@@ -27,6 +28,23 @@ namespace MovieTicketBooking.Controllers
                 }
 
                 return Ok(new ApiResponse<IdentityUser>(null, message: "User registered successfully"));
+            }
+            catch
+            {
+                return StatusCode(500, new ApiResponse<IdentityUser>(null!, "Server Error", false));
+            }
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginRequest loginRequest)
+        {
+            try
+            {
+                var token = await _authService.LoginAsync(loginRequest);
+                if (token == null)
+                    return Unauthorized(new { message = "Email or Password is not correct" });
+
+                return Ok(new ApiResponse<string>(token, message: "Login successfully"));
             }
             catch
             {

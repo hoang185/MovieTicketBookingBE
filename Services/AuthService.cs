@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
 using MovieTicketBooking.Common;
 using MovieTicketBooking.DTOs;
 using MovieTicketBooking.Entities;
 using MovieTicketBooking.Repositories.Interfaces;
 using MovieTicketBooking.Services.Interfaces;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 
 namespace MovieTicketBooking.Services
@@ -12,11 +15,48 @@ namespace MovieTicketBooking.Services
     {
         private readonly ILogger<AuthService> _logger;
         private readonly IAuthRepository _authRepository;
+        private readonly IConfiguration _configuration;
 
-        public AuthService(ILogger<AuthService> logger, IAuthRepository userRepository)
+        public AuthService(ILogger<AuthService> logger, IAuthRepository userRepository, IConfiguration configuration)
         {
             _authRepository = userRepository;
             _logger = logger;
+            _configuration = configuration;
+        }
+
+        public async Task<string?> LoginAsync(LoginRequest loginDto)
+        {
+            try
+            {
+                var user = await _authRepository.GetUserByEmailAsync(loginDto.Email);
+                if (user == null || !await _authRepository.CheckPasswordAsync(user, loginDto.Password))
+                    return null;
+
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]);
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.Id),
+                    new Claim(ClaimTypes.Email, user.Email)
+                };
+
+                var tokenDescriptor = new SecurityTokenDescriptor
+                {
+                    Subject = new ClaimsIdentity(claims),
+                    Expires = DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["Jwt:ExpiresInMinutes"])),
+                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
+                    Issuer = _configuration["Jwt:Issuer"],
+                    Audience = _configuration["Jwt:Audience"]
+                };
+
+                var token = tokenHandler.CreateToken(tokenDescriptor);
+                return tokenHandler.WriteToken(token);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                throw;
+            }
         }
 
         public async Task<IdentityResult> RegisterAsync(RegisterRequest request)

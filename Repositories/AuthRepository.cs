@@ -20,5 +20,14 @@ namespace MovieTicketBooking.Repositories
         {
             return await _userManager.CreateAsync(user, password);
         }
+        public async Task<ApplicationUser?> GetUserByEmailAsync(string email)
+        {
+            return await _userManager.FindByEmailAsync(email);
+        }
+
+        public async Task<bool> CheckPasswordAsync(ApplicationUser user, string password)
+        {
+            return await _userManager.CheckPasswordAsync(user, password);
+        }
     }
 }

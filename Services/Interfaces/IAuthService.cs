@@ -5,6 +5,7 @@ namespace MovieTicketBooking.Services.Interfaces
 {
     public interface IAuthService
     {
-        Task<IdentityResult> RegisterAsync(RegisterRequest model);
+        Task<IdentityResult> RegisterAsync(RegisterRequest registerModel);
+        Task<string?> LoginAsync(LoginRequest loginRequest);
     }
 }

@@ -52,7 +52,7 @@ namespace MovieTicketBooking.Controllers
                 {
                     HttpOnly = true,
                     Secure = false,//Secure = true chỉ hoạt động trên HTTPS
-                    SameSite = SameSiteMode.Lax, // Cho phép gửi cookie giữa các domain khác nhau
+                    SameSite = SameSiteMode.Lax,
                     Expires = DateTime.Now.AddDays(1).AddMinutes(30) // Cookie tồn tại 1 giờ
                 });
 
@@ -68,7 +68,14 @@ namespace MovieTicketBooking.Controllers
         {
             try
             {
-                // Xóa token trên client (thường xử lý ở frontend)
+                Response.Cookies.Append(Constant.JWT_TOKEN_NAME, "", new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = false,//Secure = true chỉ hoạt động trên HTTPS
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTime.UtcNow.AddDays(-1) // Đặt thời gian hết hạn về quá khứ
+                });
+
                 return Ok(new ApiResponse<IdentityUser>(null, message: "Logged out successfully" ));
             }
             catch

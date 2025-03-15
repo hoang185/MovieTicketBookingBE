@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MovieTicketBooking.Common;
 using MovieTicketBooking.DTOs;
 using MovieTicketBooking.Entities;
 using MovieTicketBooking.Services.Interfaces;
@@ -41,8 +43,18 @@ namespace MovieTicketBooking.Controllers
             try
             {
                 var token = await _authService.LoginAsync(loginRequest);
+                
                 if (token == null)
                     return Unauthorized(new { message = "Email or Password is not correct" });
+
+                // Thiết lập cookie
+                Response.Cookies.Append(Constant.JWT_TOKEN_NAME, token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = false,//Secure = true chỉ hoạt động trên HTTPS
+                    SameSite = SameSiteMode.Lax, // Cho phép gửi cookie giữa các domain khác nhau
+                    Expires = DateTime.Now.AddDays(1).AddMinutes(30) // Cookie tồn tại 1 giờ
+                });
 
                 return Ok(new ApiResponse<string>(token, message: "Login successfully"));
             }
@@ -50,6 +62,26 @@ namespace MovieTicketBooking.Controllers
             {
                 return StatusCode(500, new ApiResponse<IdentityUser>(null!, "Server Error", false));
             }
+        }
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            try
+            {
+                // Xóa token trên client (thường xử lý ở frontend)
+                return Ok(new ApiResponse<IdentityUser>(null, message: "Logged out successfully" ));
+            }
+            catch
+            {
+                return StatusCode(500, new ApiResponse<IdentityUser>(null!, "Server Error", false));
+            }
+           
+        }
+        [Authorize] // Yêu cầu token hợp lệ
+        [HttpGet("validate")]
+        public IActionResult ValidateUser()
+        {
+            return Ok(new ApiResponse<string>("", message: "User is authenticated"));
         }
     }
 }

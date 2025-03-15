@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using MovieTicketBooking.Common;
 using MovieTicketBooking.Data;
 using MovieTicketBooking.DTOs;
 using MovieTicketBooking.Repositories;
@@ -16,12 +17,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Thêm CORS
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
 
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularClient",
         policy =>
         {
             policy.WithOrigins(allowedOrigins) // Lấy từ appsettings.json
+                  .AllowCredentials()
                   .AllowAnyHeader()
                   .AllowAnyMethod();
         });
@@ -63,14 +66,34 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"],
         ClockSkew = TimeSpan.Zero
     };
+
+    // Đọc JWT từ Cookie nếu không có trong Header
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            if (context.Request.Cookies.ContainsKey(Constant.JWT_TOKEN_NAME))
+            {
+                context.Token = context.Request.Cookies["jwtToken"];
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
+
 
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IMovieRepository, MovieRepository>();
+builder.Services.AddScoped<IMovieService, MovieService>();
 
 var app = builder.Build();
 // Sử dụng CORS
 app.UseCors("AllowAngularClient");
+app.UseCookiePolicy(new CookiePolicyOptions
+{
+    MinimumSameSitePolicy = SameSiteMode.Lax // Chống CSRF
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

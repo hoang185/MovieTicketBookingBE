@@ -108,27 +108,33 @@ namespace MovieTicketBooking.Controllers
         [HttpGet("validate")]
         public async Task<IActionResult> ValidateUser()
         {
-
-            if (Request.Cookies.TryGetValue(Constant.JWT_TOKEN_NAME, out var token))
+            try
             {
-                var expiryTimeSpan = TimeSpan.FromMinutes(_expiryTime);
-                var jti = Utility.GetJtiFromToken(token);
-
-                if (string.IsNullOrEmpty(jti))
+                if (Request.Cookies.TryGetValue(Constant.JWT_TOKEN_NAME, out var token))
                 {
-                    return StatusCode(401, new ApiResponse<IdentityUser>(null!, "Token does not contain jti", false));
-                }
+                    var expiryTimeSpan = TimeSpan.FromMinutes(_expiryTime);
+                    var jti = Utility.GetJtiFromToken(token);
 
-                if (await _authService.IsTokenInBlacklistAsync(jti))
+                    if (string.IsNullOrEmpty(jti))
+                    {
+                        return StatusCode(401, new ApiResponse<IdentityUser>(null!, "Token does not contain jti", false));
+                    }
+
+                    if (await _authService.IsTokenInBlacklistAsync(jti))
+                    {
+                        return StatusCode(401, new ApiResponse<IdentityUser>(null!, "Token was revoked", false));
+                    }
+
+                    return Ok(new ApiResponse<string>("", message: "User is authenticated"));
+                }
+                else
                 {
-                    return StatusCode(401, new ApiResponse<IdentityUser>(null!, "Token was revoked", false));
+                    return StatusCode(401, new ApiResponse<IdentityUser>(null!, "Cookie does not contain token", false));
                 }
-
-                return Ok(new ApiResponse<string>("", message: "User is authenticated"));
             }
-            else
+            catch
             {
-                return StatusCode(401, new ApiResponse<IdentityUser>(null!, "Cookie does not contain token", false));
+                return StatusCode(500, new ApiResponse<IdentityUser>(null!, "Server Error", false));
             }
         }
     }

@@ -14,7 +14,12 @@ namespace MovieTicketBooking.Services
             _movieRepository = movieRepository;
         }
 
-        public async Task<IEnumerable<MovieDto>> GetMoviesAsync()
+        public async Task<MovieDetailDTO?> GetMovieByIdAsync(int movieId)
+        {
+            return await _movieRepository.GetMovieByIdAsync(movieId);
+        }
+
+        public async Task<IEnumerable<MovieListDTO>> GetMoviesAsync()
         {
             return await _movieRepository.GetAllMoviesAsync();
         }

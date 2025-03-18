@@ -100,7 +100,7 @@ var app = builder.Build();
 app.UseCors("AllowAngularClient");
 app.UseCookiePolicy(new CookiePolicyOptions
 {
-    MinimumSameSitePolicy = SameSiteMode.Lax
+    MinimumSameSitePolicy = SameSiteMode.None
 });
 
 // Configure the HTTP request pipeline.

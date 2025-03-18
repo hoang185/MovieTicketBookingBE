@@ -56,8 +56,8 @@ namespace MovieTicketBooking.Controllers
                 Response.Cookies.Append(Constant.JWT_TOKEN_NAME, token, new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = false,//Secure = true chỉ hoạt động trên HTTPS
-                    SameSite = SameSiteMode.Lax,
+                    Secure = true,//Secure = true chỉ hoạt động trên HTTPS
+                    SameSite = SameSiteMode.None,
                     Expires = DateTime.Now.AddMinutes(_expiryTime) // Cookie tồn tại 1 giờ
                 });
 
@@ -93,9 +93,6 @@ namespace MovieTicketBooking.Controllers
 
                 Response.Cookies.Append(Constant.JWT_TOKEN_NAME, "", new CookieOptions
                 {
-                    HttpOnly = true,
-                    Secure = false,//Secure = true chỉ hoạt động trên HTTPS
-                    SameSite = SameSiteMode.Lax,
                     Expires = DateTime.UtcNow.AddDays(-1) // Đặt thời gian hết hạn về quá khứ
                 });
 

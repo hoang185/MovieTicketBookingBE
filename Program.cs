@@ -9,6 +9,7 @@ using MovieTicketBooking.Repositories;
 using MovieTicketBooking.Repositories.Interfaces;
 using MovieTicketBooking.Services;
 using MovieTicketBooking.Services.Interfaces;
+using StackExchange.Redis;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,6 +43,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
+
+// Đăng ký Redis ConnectionMultiplexer
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+    ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis")));
+
+// Đăng ký RedisClient
+builder.Services.AddSingleton<IRedisClient, RedisClient>();
 
 // Cấu hình JWT
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -92,7 +100,7 @@ var app = builder.Build();
 app.UseCors("AllowAngularClient");
 app.UseCookiePolicy(new CookiePolicyOptions
 {
-    MinimumSameSitePolicy = SameSiteMode.Lax // Chống CSRF
+    MinimumSameSitePolicy = SameSiteMode.Lax
 });
 
 // Configure the HTTP request pipeline.

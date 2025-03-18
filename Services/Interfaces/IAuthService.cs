@@ -7,5 +7,7 @@ namespace MovieTicketBooking.Services.Interfaces
     {
         Task<IdentityResult> RegisterAsync(RegisterRequest registerModel);
         Task<string?> LoginAsync(LoginRequest loginRequest);
+        Task AddTokenToBlacklistAsync(string token, TimeSpan expiryTimeSpan);
+        Task<bool> IsTokenInBlacklistAsync(string token);
     }
 }

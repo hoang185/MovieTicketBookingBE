@@ -8,6 +8,7 @@ using MovieTicketBooking.Services.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.Mvc;
 
 namespace MovieTicketBooking.Services
 {
@@ -16,12 +17,14 @@ namespace MovieTicketBooking.Services
         private readonly ILogger<AuthService> _logger;
         private readonly IAuthRepository _authRepository;
         private readonly IConfiguration _configuration;
+        private readonly IRedisClient _redisClient;
 
-        public AuthService(ILogger<AuthService> logger, IAuthRepository userRepository, IConfiguration configuration)
+        public AuthService(ILogger<AuthService> logger, IAuthRepository userRepository, IConfiguration configuration, IRedisClient redisClient)
         {
             _authRepository = userRepository;
             _logger = logger;
             _configuration = configuration;
+            _redisClient = redisClient;
         }
 
         public async Task<string?> LoginAsync(LoginRequest loginDto)
@@ -37,7 +40,8 @@ namespace MovieTicketBooking.Services
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.Id),
-                    new Claim(ClaimTypes.Email, user.Email)
+                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()) // Tạo `jti` duy nhất
                 };
 
                 var tokenDescriptor = new SecurityTokenDescriptor
@@ -59,6 +63,11 @@ namespace MovieTicketBooking.Services
             }
         }
 
+        public async Task AddTokenToBlacklistAsync(string token, TimeSpan expiryTimeSpan)
+        {
+            await _redisClient.SetAsync(token, "1", expiryTimeSpan);
+        }
+
         public async Task<IdentityResult> RegisterAsync(RegisterRequest request)
         {
             try
@@ -69,7 +78,7 @@ namespace MovieTicketBooking.Services
                     Email = request.Email,
                     FullName = request.FullName
                 };
-
+                
                 return await _authRepository.RegisterUserAsync(user, request.Password);
             }
             catch (Exception ex)
@@ -77,6 +86,16 @@ namespace MovieTicketBooking.Services
                 _logger.LogError(ex, ex.Message);
                 throw;
             }
+        }
+
+        public async Task<bool> IsTokenInBlacklistAsync(string tokenKey)
+        {
+            var token = await _redisClient.GetAsync(tokenKey);
+            if (string.IsNullOrEmpty(token))
+            {
+                return false;
+            }
+            else return true;
         }
     }
 }

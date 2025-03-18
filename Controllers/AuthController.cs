@@ -13,9 +13,13 @@ namespace MovieTicketBooking.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
-        public AuthController(IAuthService authService)
+        private readonly IConfiguration _configuration;
+        private readonly int _expiryTime;
+        public AuthController(IAuthService authService, IConfiguration configuration)
         {
             _authService = authService;
+            _configuration = configuration;
+            _expiryTime = Convert.ToInt16(_configuration["Jwt:ExpiresInMinutes"]);
         }
 
         [HttpPost("register")]
@@ -42,8 +46,9 @@ namespace MovieTicketBooking.Controllers
         {
             try
             {
+                //Mặc định, mỗi lần user đăng nhập, ASP.NET Core sẽ tạo một token mới
                 var token = await _authService.LoginAsync(loginRequest);
-                
+
                 if (token == null)
                     return Unauthorized(new { message = "Email or Password is not correct" });
 
@@ -53,7 +58,7 @@ namespace MovieTicketBooking.Controllers
                     HttpOnly = true,
                     Secure = false,//Secure = true chỉ hoạt động trên HTTPS
                     SameSite = SameSiteMode.Lax,
-                    Expires = DateTime.Now.AddDays(1).AddMinutes(30) // Cookie tồn tại 1 giờ
+                    Expires = DateTime.Now.AddMinutes(_expiryTime) // Cookie tồn tại 1 giờ
                 });
 
                 return Ok(new ApiResponse<string>(token, message: "Login successfully"));
@@ -63,11 +68,29 @@ namespace MovieTicketBooking.Controllers
                 return StatusCode(500, new ApiResponse<IdentityUser>(null!, "Server Error", false));
             }
         }
+
+        [Authorize]
         [HttpPost("logout")]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
             try
             {
+                if (Request.Cookies.TryGetValue(Constant.JWT_TOKEN_NAME, out var token))
+                {
+                    //redis: thêm token vào blacklist
+                    var expiryTimeSpan = TimeSpan.FromMinutes(_expiryTime);
+                    var jti = Utility.GetJtiFromToken(token);
+                    if (string.IsNullOrEmpty(jti))
+                    {
+                        return StatusCode(401, new ApiResponse<IdentityUser>(null!, "Token does not contain jti", false));
+                    }
+                    await _authService.AddTokenToBlacklistAsync(jti, expiryTimeSpan);
+                }
+                else
+                {
+                    return StatusCode(401, new ApiResponse<IdentityUser>(null!, "Cookie does not contain token", false));
+                }
+
                 Response.Cookies.Append(Constant.JWT_TOKEN_NAME, "", new CookieOptions
                 {
                     HttpOnly = true,
@@ -76,19 +99,40 @@ namespace MovieTicketBooking.Controllers
                     Expires = DateTime.UtcNow.AddDays(-1) // Đặt thời gian hết hạn về quá khứ
                 });
 
-                return Ok(new ApiResponse<IdentityUser>(null, message: "Logged out successfully" ));
+                return Ok(new ApiResponse<IdentityUser>(null, message: "Logged out successfully"));
             }
             catch
             {
                 return StatusCode(500, new ApiResponse<IdentityUser>(null!, "Server Error", false));
             }
-           
+
         }
         [Authorize] // Yêu cầu token hợp lệ
         [HttpGet("validate")]
-        public IActionResult ValidateUser()
+        public async Task<IActionResult> ValidateUser()
         {
-            return Ok(new ApiResponse<string>("", message: "User is authenticated"));
+
+            if (Request.Cookies.TryGetValue(Constant.JWT_TOKEN_NAME, out var token))
+            {
+                var expiryTimeSpan = TimeSpan.FromMinutes(_expiryTime);
+                var jti = Utility.GetJtiFromToken(token);
+
+                if (string.IsNullOrEmpty(jti))
+                {
+                    return StatusCode(401, new ApiResponse<IdentityUser>(null!, "Token does not contain jti", false));
+                }
+
+                if (await _authService.IsTokenInBlacklistAsync(jti))
+                {
+                    return StatusCode(401, new ApiResponse<IdentityUser>(null!, "Token was revoked", false));
+                }
+
+                return Ok(new ApiResponse<string>("", message: "User is authenticated"));
+            }
+            else
+            {
+                return StatusCode(401, new ApiResponse<IdentityUser>(null!, "Cookie does not contain token", false));
+            }
         }
     }
 }

@@ -50,6 +50,24 @@ namespace MovieTicketBooking.Controllers
             }
         }
 
+        [HttpPost("seat-select")]
+        public async Task<IActionResult> SelectSeat([FromBody] SeatSelectRequest seatSelectRequest)
+        {
+            try
+            {
+                var failedSeats = await _movieService.LockSeatAsync(seatSelectRequest);
+                if (failedSeats.Any())
+                {
+                    return Conflict(new ApiResponse<string>(null!, $"Ghế {string.Join(',', failedSeats)} đã được chọn bởi người khác.", false));
+                }
+                return Ok(new ApiResponse<string>(null!, "Ghế được giữ thành công"));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<IdentityUser>(null!, ex.Message, false));
+            }
+        }
+
         [Authorize]
         [HttpGet("protected")]
         public IActionResult GetProtectedData()

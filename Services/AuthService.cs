@@ -27,7 +27,7 @@ namespace MovieTicketBooking.Services
             _redisClient = redisClient;
         }
 
-        public async Task<string?> LoginAsync(LoginRequest loginDto)
+        public async Task<LoginResponse> LoginAsync(LoginRequest loginDto)
         {
             try
             {
@@ -54,7 +54,7 @@ namespace MovieTicketBooking.Services
                 };
 
                 var token = tokenHandler.CreateToken(tokenDescriptor);
-                return tokenHandler.WriteToken(token);
+                return new LoginResponse { Token = tokenHandler.WriteToken(token), UserId = user.Id };
             }
             catch (Exception ex)
             {
@@ -78,7 +78,7 @@ namespace MovieTicketBooking.Services
                     Email = request.Email,
                     FullName = request.FullName
                 };
-                
+
                 return await _authRepository.RegisterUserAsync(user, request.Password);
             }
             catch (Exception ex)

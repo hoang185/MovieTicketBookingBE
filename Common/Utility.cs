@@ -28,7 +28,11 @@ namespace MovieTicketBooking.Common
             // Lấy JTI từ claims
             return jwtToken?.Claims.FirstOrDefault(c => c.Type == "jti")?.Value;
         }
-
+        public static string CreateSeatKey(int movieId, int cinemaId, string date, string time, string seatId)
+        {
+            string seatKey = $"{movieId}-{cinemaId}-{date}-{time}-{seatId}".Replace(" ", "");
+            return seatKey;
+        }
         public static string? GetJtiFromRequestCookies(HttpContext httpContext)
         {
             if (httpContext.Request.Cookies.TryGetValue(Constant.JWT_TOKEN_NAME, out var token))

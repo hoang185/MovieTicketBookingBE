@@ -47,13 +47,13 @@ namespace MovieTicketBooking.Controllers
             try
             {
                 //Mặc định, mỗi lần user đăng nhập, ASP.NET Core sẽ tạo một token mới
-                var token = await _authService.LoginAsync(loginRequest);
+                var loginRespone = await _authService.LoginAsync(loginRequest);
 
-                if (token == null)
+                if (loginRespone.Token == null)
                     return Unauthorized(new { message = "Email or Password is not correct" });
 
                 // Thiết lập cookie
-                Response.Cookies.Append(Constant.JWT_TOKEN_NAME, token, new CookieOptions
+                Response.Cookies.Append(Constant.JWT_TOKEN_NAME, loginRespone.Token, new CookieOptions
                 {
                     HttpOnly = true,
                     Secure = true,//Secure = true chỉ hoạt động trên HTTPS
@@ -61,7 +61,15 @@ namespace MovieTicketBooking.Controllers
                     Expires = DateTime.Now.AddMinutes(_expiryTime) // Cookie tồn tại 1 giờ
                 });
 
-                return Ok(new ApiResponse<string>(token, message: "Login successfully"));
+                Response.Cookies.Append(Constant.USER_ID, loginRespone.UserId, new CookieOptions
+                {
+                    HttpOnly = false,
+                    Secure = true,//Secure = true chỉ hoạt động trên HTTPS
+                    SameSite = SameSiteMode.None,
+                    Expires = DateTime.Now.AddMinutes(_expiryTime) // Cookie tồn tại 1 giờ
+                });
+
+                return Ok(new ApiResponse<LoginResponse>(loginRespone, message: "Login successfully"));
             }
             catch
             {

@@ -6,7 +6,7 @@ namespace MovieTicketBooking.Services.Interfaces
     public interface IAuthService
     {
         Task<IdentityResult> RegisterAsync(RegisterRequest registerModel);
-        Task<string?> LoginAsync(LoginRequest loginRequest);
+        Task<LoginResponse> LoginAsync(LoginRequest loginRequest);
         Task AddTokenToBlacklistAsync(string token, TimeSpan expiryTimeSpan);
         Task<bool> IsTokenInBlacklistAsync(string token);
     }

@@ -6,6 +6,6 @@ namespace MovieTicketBooking.Repositories.Interfaces
     public interface IMovieRepository : IBaseRepository<Movie>
     {
         Task<IEnumerable<MovieListDTO>> GetAllMoviesAsync();
-        Task<MovieDetailDTO?> GetMovieByIdAsync(int movieId);
+        Task<MovieDetailDTO?> GetMovieByIdAsync(int movieId);       
     }
 }

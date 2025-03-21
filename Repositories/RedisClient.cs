@@ -26,5 +26,10 @@ namespace MovieTicketBooking.Repositories
         {
             await _db.KeyDeleteAsync(key);
         }
+
+        public async Task<bool> SetNotExistAsync(string key, string value, TimeSpan? expiry = null, When when = When.NotExists)
+        {
+            return await _db.StringSetAsync(key, value, expiry, when);
+        }
     }
 }

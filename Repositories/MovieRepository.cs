@@ -3,6 +3,7 @@ using MovieTicketBooking.Data;
 using MovieTicketBooking.DTOs;
 using MovieTicketBooking.Entities;
 using MovieTicketBooking.Repositories.Interfaces;
+using StackExchange.Redis;
 
 namespace MovieTicketBooking.Repositories
 {

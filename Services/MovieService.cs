@@ -7,6 +7,7 @@ using MovieTicketBooking.Services.Interfaces;
 using StackExchange.Redis;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace MovieTicketBooking.Services
 {
@@ -98,6 +99,51 @@ namespace MovieTicketBooking.Services
             if (currentOwner == userId) // Chỉ xóa nếu đúng user
             {
                 await _redisClient.RemoveAsync(seatKey);
+            }
+        }
+
+        public async Task<bool> SaveSeatAsync(CheckoutRequest checkoutRequest)
+        {
+            try
+            {
+                var movieId = checkoutRequest.MovieId;
+                var cinemaId = checkoutRequest.CinemaId;
+                var date = checkoutRequest.Date;
+                var time = checkoutRequest.Time;
+                var userId = checkoutRequest.UserId;
+                var seatKeys = checkoutRequest.SeatIds.ToDictionary(x => x, x => Utility.CreateSeatKey(movieId, cinemaId, date, time, x));
+                TimeSpan expiryBookedSeat = TimeSpan.FromDays(7);
+                // Lua script để kiểm tra và cập nhật ghế
+                var luaScript = @"
+            for i, seatKey in ipairs(KEYS) do
+                local currentOwner = redis.call('GET', seatKey)
+                if currentOwner == ARGV[1] then
+                    redis.call('SET', seatKey, ARGV[2], 'PX', ARGV[3])
+                else
+                    return 0 -- Trả về 0 nếu bất kỳ ghế nào không thuộc userId
+                end
+            end
+            return 1 -- Thành công nếu tất cả ghế đều thuộc về userId
+        ";
+
+                // Chuẩn bị tham số
+                var keys = seatKeys.Values.Select(x => (RedisKey)x).ToArray();
+                var args = new RedisValue[]
+                {
+            userId,
+            Constant.BOOKED_SEAT,
+            expiryBookedSeat.TotalMilliseconds
+                };
+
+                // Thực thi script trong Redis
+                var result = (long)await _redisClient.ScriptEvaluateAsync(luaScript, keys, args);
+
+                return result == 1;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
             }
         }
     }

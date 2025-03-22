@@ -17,9 +17,9 @@ namespace MovieTicketBooking.Repositories
             return await _db.StringGetAsync(key);
         }
 
-        public async Task SetAsync(string key, string value, TimeSpan? expiry = null)
+        public async Task<bool> SetAsync(string key, string value, TimeSpan? expiry = null)
         {
-            await _db.StringSetAsync(key, value, expiry);
+            return await _db.StringSetAsync(key, value, expiry);
         }
 
         public async Task RemoveAsync(string key)
@@ -30,6 +30,11 @@ namespace MovieTicketBooking.Repositories
         public async Task<bool> SetNotExistAsync(string key, string value, TimeSpan? expiry = null, When when = When.NotExists)
         {
             return await _db.StringSetAsync(key, value, expiry, when);
+        }
+
+        public async Task<RedisResult> ScriptEvaluateAsync(string script, RedisKey[] key, RedisValue[] redisValue, CommandFlags commandFlags = CommandFlags.None)
+        {
+            return await _db.ScriptEvaluateAsync(script, key, redisValue, commandFlags);
         }
     }
 }

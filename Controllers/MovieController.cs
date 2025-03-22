@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using MovieTicketBooking.DTOs;
 using MovieTicketBooking.Entities;
 using MovieTicketBooking.Services.Interfaces;
+using System.Threading.Tasks;
 
 namespace MovieTicketBooking.Controllers
 {
@@ -65,6 +66,28 @@ namespace MovieTicketBooking.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new ApiResponse<IdentityUser>(null!, ex.Message, false));
+            }
+        }
+
+        [Authorize]
+        [HttpPost("checkout")]
+        public async Task<IActionResult> ProcessPayment([FromBody] CheckoutRequest request)
+        {
+            if (request.SeatIds == null || !request.SeatIds.Any())
+            {
+                return BadRequest(new ApiResponse<string>(null!, "Vui lòng chọn ít nhất một ghế!", false));
+            }
+
+            // Giả lập quá trình thanh toán thành công
+            bool paymentSuccess = await _movieService.SaveSeatAsync(request);
+
+            if (paymentSuccess)
+            {
+                return Ok(new ApiResponse<string>(null!, "Thanh toán thành công!"));
+            }
+            else
+            {
+                return StatusCode(500, new { message = "Thanh toán thất bại, vui lòng thử lại!" });
             }
         }
 
